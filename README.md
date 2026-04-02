@@ -31,7 +31,17 @@ explicitly start this one. Some ways of achieving this is:
 `mako` can be extensively configured and customized - feel free to read more
 using the command `man 5 mako`
 
-For control of mako during runtime, `makoctl` can be used; see `man makoctl`
+For control of mako during runtime, `makoctl` can be used; see `man makoctl`.
+`mako` also supports persistent notification history stored in a configurable
+JSON file. History can be inspected and managed with commands such as:
+
+```shell
+build/makoctl history
+build/makoctl history unread
+build/makoctl read -n 42
+build/makoctl delete -n 42
+build/makoctl restore
+```
 
 ## Building
 
