@@ -33,7 +33,8 @@ Sends IPC commands to the running mako daemon via dbus.
 		notification.
 
 *restore*
-	Restores the most recently dismissed notification from the history file.
+	Restores the most recently dismissed notification from the history file
+	and removes it from history.
 
 *invoke* [-n <id>] [action]
 	Invokes an action on a notification. If _action_ is not specified, invokes
@@ -78,7 +79,8 @@ Sends IPC commands to the running mako daemon via dbus.
 *history* [read|unread]
 	Retrieve a list of dismissed notifications from the history file. If
 	_read_ or _unread_ is specified, only notifications matching that state
-	are returned.
+	are returned. The JSON output includes the notification timestamps and
+	current read state.
 
 	Options:
 
@@ -91,7 +93,8 @@ Sends IPC commands to the running mako daemon via dbus.
 
 *delete* -n <id|all>
 	Delete the notification with the given id from the history file, or all
-	history notifications when _all_ is specified.
+	history notifications when _all_ is specified. This removes the matching
+	entries from the file rather than marking them hidden.
 
 *reload*
 	Reloads the configuration file.

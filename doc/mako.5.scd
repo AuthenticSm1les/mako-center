@@ -17,16 +17,17 @@ Empty lines and lines that begin with # are ignored.
 # GLOBAL CONFIGURATION OPTIONS
 
 *max-history*=_n_
-	Deprecated. Notifications are stored in the configured history file
-	instead of an in-memory history buffer.
+	Set the maximum number of notifications kept in the history file.
+	When the limit is exceeded, the oldest history entries are removed.
+	Set to 0 to disable history entirely.
 
 	Default: 5
 
 *history-file*=_path_
-	Set the file used to store dismissed notifications. The path must be
-	absolute or otherwise start with ~/.
+	Set the JSON file used to store dismissed notifications. The path must be
+	absolute or otherwise start with */~*.
 
-	Default: *$XDG\_STATE\_HOME/mako/history* or *~/.local/state/mako/history*
+	Default: *$XDG\_STATE\_HOME/mako/history.json* or *~/.local/state/mako/history.json*
 
 *sort*=_+/-time_ | _+/-priority_
 	Sorts incoming notifications by time and/or priority in ascending(+)
@@ -248,8 +249,8 @@ Supported actions:
 	Default: 1
 
 *history*=0|1
-	If set, mako will save notifications that have reached their timeout
-	into the history file instead of immediately deleting them.
+	If set, mako will save notifications closed by dismissal or timeout into
+	the history file instead of immediately deleting them.
 
 	Default: 1
 
