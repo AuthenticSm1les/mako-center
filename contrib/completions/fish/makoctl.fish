@@ -1,6 +1,6 @@
 function __fish_makoctl_complete_no_subcommand
 	for i in (commandline -opc)
-		if contains -- $i dismiss restore invoke menu list reload mode help
+		if contains -- $i dismiss restore invoke menu list history read delete reload mode help
 			return 1
 		end
 	end
@@ -13,6 +13,8 @@ complete -c makoctl -n '__fish_makoctl_complete_no_subcommand' -a invoke -d 'Inv
 complete -c makoctl -n '__fish_makoctl_complete_no_subcommand' -a menu -d 'Use a program to select one action to be invoked on the notification (the last one if none is given)' -x
 complete -c makoctl -n '__fish_makoctl_complete_no_subcommand' -a list -d 'List notifications' -x
 complete -c makoctl -n '__fish_makoctl_complete_no_subcommand' -a history -d 'List history' -x
+complete -c makoctl -n '__fish_makoctl_complete_no_subcommand' -a read -d 'Mark history notifications as read' -x
+complete -c makoctl -n '__fish_makoctl_complete_no_subcommand' -a delete -d 'Delete history notifications' -x
 complete -c makoctl -n '__fish_makoctl_complete_no_subcommand' -a reload -d 'Reload the configuration file' -x
 complete -c makoctl -n '__fish_makoctl_complete_no_subcommand' -a mode -d 'List, activate, or deactivate modes' -x
 complete -c makoctl -n '__fish_makoctl_complete_no_subcommand' -a help -d 'Show help message and quit' -x
@@ -21,6 +23,9 @@ complete -c makoctl -n '__fish_seen_subcommand_from dismiss' -s a -l all -d "Dis
 complete -c makoctl -n '__fish_seen_subcommand_from dismiss' -s g -l group -d "Dismiss all the notifications in the last notification's group" -x
 complete -c makoctl -n '__fish_seen_subcommand_from dismiss' -s h -l no-history -d "Dismiss without adding to history" -x
 complete -c makoctl -n '__fish_seen_subcommand_from dismiss' -s n -d "Dismiss the notification with the given id" -x
+complete -c makoctl -n '__fish_seen_subcommand_from history' -a "read unread" -x
+complete -c makoctl -n '__fish_seen_subcommand_from read' -s n -d "Mark the history notification with the given id or all as read" -x
+complete -c makoctl -n '__fish_seen_subcommand_from delete' -s n -d "Delete the history notification with the given id or all" -x
 complete -c makoctl -n '__fish_seen_subcommand_from invoke' -s n -d "Invoke an action on the notification with the given id" -x
 complete -c makoctl -n '__fish_seen_subcommand_from menu' -s n -d "Use a program to select one action on the notification with the given id" -x
 complete -c makoctl -n '__fish_seen_subcommand_from menu' -a "(__fish_complete_command)" -x
@@ -28,4 +33,3 @@ complete -c makoctl -n '__fish_seen_subcommand_from mode' -s a -d "Add mode" -x
 complete -c makoctl -n '__fish_seen_subcommand_from mode' -s r -d "Remove mode" -x
 complete -c makoctl -n '__fish_seen_subcommand_from mode' -s t -d "Toggle mode" -x
 complete -c makoctl -n '__fish_seen_subcommand_from mode' -s s -d "Set mode" -x
-

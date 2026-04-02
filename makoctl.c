@@ -295,6 +295,7 @@ static const char *urgency_name(uint8_t urgency) {
 struct notification_metadata {
 	uint32_t id;
 	const char *app_name, *app_icon, *category, *desktop_entry, *summary, *body;
+	const char *created_at, *dismissed_at;
 	uint8_t urgency;
 	char **actions;
 };
@@ -314,6 +315,12 @@ static void print_notification_as_text(const struct notification_metadata *notif
 	}
 	if (!is_empty_str(notif->desktop_entry)) {
 		printf("  Desktop entry: %s\n", notif->desktop_entry);
+	}
+	if (!is_empty_str(notif->created_at)) {
+		printf("  Created at: %s\n", notif->created_at);
+	}
+	if (!is_empty_str(notif->dismissed_at)) {
+		printf("  Dismissed at: %s\n", notif->dismissed_at);
 	}
 
 	const char *urgency_desc = urgency_name(notif->urgency);
@@ -389,6 +396,8 @@ static void print_notification_as_json(const struct notification_metadata *notif
 	print_json_key_value_str("desktop_entry", notif->desktop_entry);
 	print_json_key_value_str("summary", notif->summary);
 	print_json_key_value_str("body", notif->body);
+	print_json_key_value_str("created_at", notif->created_at);
+	print_json_key_value_str("dismissed_at", notif->dismissed_at);
 	print_json_key_value_str("urgency", urgency_name(notif->urgency));
 	printf("    \"actions\": {");
 	if (notif->actions != NULL) {
@@ -440,6 +449,10 @@ static int print_notification(sd_bus_message *reply, bool json) {
 			ret = sd_bus_message_read(reply, "v", "s", &notif.category);
 		} else if (strcmp(key, "desktop-entry") == 0) {
 			ret = sd_bus_message_read(reply, "v", "s", &notif.desktop_entry);
+		} else if (strcmp(key, "created-at") == 0) {
+			ret = sd_bus_message_read(reply, "v", "s", &notif.created_at);
+		} else if (strcmp(key, "dismissed-at") == 0) {
+			ret = sd_bus_message_read(reply, "v", "s", &notif.dismissed_at);
 		} else if (strcmp(key, "urgency") == 0) {
 			ret = sd_bus_message_read(reply, "v", "y", &notif.urgency);
 		} else {
@@ -527,14 +540,161 @@ static int print_notification_list(sd_bus_message *reply, int argc, char *argv[]
 }
 
 static int run_history(sd_bus *bus, int argc, char *argv[]) {
+	const char *filter = "all";
+	optind = 1;
+	while (true) {
+		int opt = getopt(argc, argv, "j");
+		if (opt == -1) {
+			break;
+		}
+
+		switch (opt) {
+		case 'j':
+			break;
+		default:
+			return -EINVAL;
+		}
+	}
+
+	if (optind < argc) {
+		filter = argv[optind];
+	}
+
 	sd_bus_message *reply = NULL;
-	int ret = call_method(bus, "ListHistory", &reply, "");
+	int ret = call_method(bus, "ListHistory", &reply, "s", filter);
 	if (ret < 0) {
 		return ret;
 	}
 
+	optind = 1;
 	ret = print_notification_list(reply, argc, argv);
 	sd_bus_message_unref(reply);
+	return ret;
+}
+
+static int run_delete(sd_bus *bus, int argc, char *argv[]) {
+	uint32_t id = 0;
+	bool all = false;
+
+	optind = 1;
+	while (true) {
+		int opt = getopt(argc, argv, "n:");
+		if (opt == -1) {
+			break;
+		}
+
+		switch (opt) {
+		case 'n':
+			if (strcmp(optarg, "all") == 0) {
+				all = true;
+				break;
+			}
+			{
+				int ret = parse_uint32(&id, optarg);
+				if (ret < 0) {
+					log_neg_errno(ret, "invalid notification ID");
+					return 1;
+				}
+			}
+			break;
+		default:
+			return -EINVAL;
+		}
+	}
+
+	if (!all && id == 0) {
+		fprintf(stderr, "delete requires -n <id|all>\n");
+		return -EINVAL;
+	}
+
+	sd_bus_message *msg = NULL;
+	int ret = new_method_call(bus, &msg, "DeleteHistoryNotifications");
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = sd_bus_message_open_container(msg, 'a', "{sv}");
+	if (ret < 0) {
+		return ret;
+	}
+	ret = sd_bus_message_append(msg, "{sv}", "id", "u", id);
+	if (ret < 0) {
+		return ret;
+	}
+	ret = sd_bus_message_append(msg, "{sv}", "all", "b", (int)all);
+	if (ret < 0) {
+		return ret;
+	}
+	ret = sd_bus_message_close_container(msg);
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = call(bus, msg, NULL);
+	sd_bus_message_unref(msg);
+	return ret;
+}
+
+static int run_read(sd_bus *bus, int argc, char *argv[]) {
+	uint32_t id = 0;
+	bool all = false;
+
+	optind = 1;
+	while (true) {
+		int opt = getopt(argc, argv, "n:");
+		if (opt == -1) {
+			break;
+		}
+
+		switch (opt) {
+		case 'n':
+			if (strcmp(optarg, "all") == 0) {
+				all = true;
+				break;
+			}
+			{
+				int ret = parse_uint32(&id, optarg);
+				if (ret < 0) {
+					log_neg_errno(ret, "invalid notification ID");
+					return 1;
+				}
+			}
+			break;
+		default:
+			return -EINVAL;
+		}
+	}
+
+	if (!all && id == 0) {
+		fprintf(stderr, "read requires -n <id|all>\n");
+		return -EINVAL;
+	}
+
+	sd_bus_message *msg = NULL;
+	int ret = new_method_call(bus, &msg, "MarkHistoryNotificationsRead");
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = sd_bus_message_open_container(msg, 'a', "{sv}");
+	if (ret < 0) {
+		return ret;
+	}
+	ret = sd_bus_message_append(msg, "{sv}", "id", "u", id);
+	if (ret < 0) {
+		return ret;
+	}
+	ret = sd_bus_message_append(msg, "{sv}", "all", "b", (int)all);
+	if (ret < 0) {
+		return ret;
+	}
+	ret = sd_bus_message_close_container(msg);
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = call(bus, msg, NULL);
+	sd_bus_message_unref(msg);
 	return ret;
 }
 
@@ -921,8 +1081,8 @@ static const char usage[] =
 	"          [-g|--group]           Dismiss all the notifications\n"
 	"                                 in the last notification's group\n"
 	"          [-h|--no-history]      Dismiss w/o adding to history\n"
-	"  restore                        Restore the most recently expired\n"
-	"                                 notification from the history buffer\n"
+	"  restore                        Restore the most recently dismissed\n"
+	"                                 notification from the history file\n"
 	"  invoke [-n id] [action]        Invoke an action on the notification\n"
 	"                                 with the given id, or the last\n"
 	"                                 notification if none is given\n"
@@ -931,7 +1091,11 @@ static const char usage[] =
 	"                                 with the given id, or the last\n"
 	"                                 notification if none is given\n"
 	"  list [-j]                      List notifications\n"
-	"  history [-j]                   List history\n"
+	"  history [-j] [read|unread]     List history from the history file\n"
+	"  read -n <id|all>               Mark the history notification with the\n"
+	"                                 given id, or all, as read\n"
+	"  delete -n <id|all>             Delete the history notification with the\n"
+	"                                 given id, or all\n"
 	"  reload                         Reload the configuration file\n"
 	"  mode                           List modes\n"
 	"  mode [-a mode]... [-r mode]... Add/remove modes\n"
@@ -967,6 +1131,10 @@ int main(int argc, char *argv[]) {
 		ret = run_invoke(bus, cmd_argc, cmd_argv);
 	} else if (strcmp(cmd, "history") == 0) {
 		ret = run_history(bus, cmd_argc, cmd_argv);
+	} else if (strcmp(cmd, "read") == 0) {
+		ret = run_read(bus, cmd_argc, cmd_argv);
+	} else if (strcmp(cmd, "delete") == 0) {
+		ret = run_delete(bus, cmd_argc, cmd_argv);
 	} else if (strcmp(cmd, "list") == 0) {
 		ret = run_list(bus, cmd_argc, cmd_argv);
 	} else if (strcmp(cmd, "menu") == 0) {

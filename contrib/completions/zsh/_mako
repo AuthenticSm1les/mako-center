@@ -24,6 +24,7 @@ _arguments \
     '--hidden-format[Format string.]:format:' \
     '--max-visible[Max number of visible notifications.]:visible notifications:' \
     '--max-history[Max size of history buffer.]:historical notifications:' \
+    '--history-file[Path to the history file.]:history file:_files' \
     '--history[Add expired notification to history.]:history:' \
     '--default-timeout[Default timeout in milliseconds.]:timeout (ms):' \
     '--ignore-timeout[If set, mako will ignore the expire timeout sent by notifications and use the one provided by default-timeout instead.]:Use default timeout:(0 1)' \

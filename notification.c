@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <glib.h>
 #include <pango/pangocairo.h>
 #include <wayland-client.h>
 #include <linux/input-event-codes.h>
@@ -14,6 +15,7 @@
 #include "criteria.h"
 #include "dbus.h"
 #include "event-loop.h"
+#include "history.h"
 #include "mako.h"
 #include "notification.h"
 #include "icon.h"
@@ -82,6 +84,9 @@ struct mako_notification *create_notification(struct mako_state *state) {
 	wl_list_init(&notif->actions);
 	wl_list_init(&notif->link);
 	reset_notification(notif);
+	GDateTime *now = g_date_time_new_now_utc();
+	notif->created_at = g_date_time_format_iso8601(now);
+	g_date_time_unref(now);
 
 	// Start ungrouped.
 	notif->group_index = -1;
@@ -98,6 +103,7 @@ void destroy_notification(struct mako_notification *notif) {
 	free(notif->app_icon);
 	free(notif->summary);
 	free(notif->body);
+	free(notif->created_at);
 	free(notif->category);
 	free(notif->desktop_entry);
 	free(notif->tag);
@@ -132,16 +138,10 @@ void close_notification(struct mako_notification *notif,
 	notif->timer = NULL;
 
 	if (add_to_history) {
-		notif->surface = NULL;
-		wl_list_insert(&state->history, &notif->link);
-		while (wl_list_length(&state->history) > state->config.max_history) {
-			struct mako_notification *n =
-				wl_container_of(state->history.prev, n, link);
-			destroy_notification(n);
-		}
-	} else {
-		destroy_notification(notif);
+		mako_history_add_notification(state, notif);
 	}
+
+	destroy_notification(notif);
 
 	emit_notifications_changed(state);
 }

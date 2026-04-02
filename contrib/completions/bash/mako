@@ -30,6 +30,7 @@ _mako()
     '--hidden-format'
     '--max-visible'
     '--max-history'
+    '--history-file'
     '--history'
     '--sort'
     '--default-timeout'

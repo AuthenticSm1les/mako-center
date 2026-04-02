@@ -36,6 +36,7 @@ struct mako_notification {
 	char *app_icon;
 	char *summary;
 	char *body;
+	char *created_at;
 	int32_t requested_timeout;
 	struct wl_list actions; // mako_action::link
 

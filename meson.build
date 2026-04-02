@@ -29,6 +29,7 @@ pango = dependency('pango')
 pangocairo = dependency('pangocairo')
 glib = dependency('glib-2.0')
 gobject = dependency('gobject-2.0')
+json_glib = dependency('json-glib-1.0')
 realtime = cc.find_library('rt')
 wayland_client = dependency('wayland-client')
 wayland_protos = dependency('wayland-protocols', version: '>=1.32')
@@ -65,6 +66,7 @@ src_files = [
 	'main.c',
 	'mode.c',
 	'notification.c',
+	'history.c',
 	'pool-buffer.c',
 	'render.c',
 	'wayland.c',
@@ -91,6 +93,7 @@ executable(
 		pangocairo,
 		glib,
 		gobject,
+		json_glib,
 		realtime,
 		wayland_client,
 		wayland_cursor,

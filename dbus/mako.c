@@ -6,6 +6,7 @@
 #include "criteria.h"
 #include "surface.h"
 #include "dbus.h"
+#include "history.h"
 #include "mako.h"
 #include "mode.h"
 #include "notification.h"
@@ -120,14 +121,10 @@ static int handle_invoke_action(sd_bus_message *msg, void *data,
 static int handle_restore_action(sd_bus_message *msg, void *data,
 		sd_bus_error *ret_error) {
 	struct mako_state *state = data;
-
-	if (wl_list_empty(&state->history)) {
+	struct mako_notification *notif = mako_history_restore_latest(state);
+	if (notif == NULL) {
 		goto done;
 	}
-
-	struct mako_notification *notif =
-		wl_container_of(state->history.next, notif, link);
-	wl_list_remove(&notif->link);
 
 	finish_style(&notif->style);
 	init_empty_style(&notif->style);
@@ -289,7 +286,118 @@ static int handle_list_notifications(sd_bus_message *msg, void *data,
 static int handle_list_history(sd_bus_message *msg, void *data,
 		sd_bus_error *ret_error) {
 	struct mako_state *state = data;
-	return handle_list(msg, &state->history);
+	const char *filter = "all";
+	int ret = sd_bus_message_read(msg, "s", &filter);
+	if (ret < 0) {
+		return ret;
+	}
+
+	enum mako_history_filter history_filter = MAKO_HISTORY_ALL;
+	if (strcmp(filter, "read") == 0) {
+		history_filter = MAKO_HISTORY_READ;
+	} else if (strcmp(filter, "unread") == 0) {
+		history_filter = MAKO_HISTORY_UNREAD;
+	} else if (strcmp(filter, "all") != 0) {
+		return -EINVAL;
+	}
+
+	return mako_history_handle_list(msg, state, history_filter);
+}
+
+static int handle_delete_history(sd_bus_message *msg, void *data,
+		sd_bus_error *ret_error) {
+	struct mako_state *state = data;
+	uint32_t id = 0;
+	int all = 0;
+
+	int ret = sd_bus_message_enter_container(msg, 'a', "{sv}");
+	if (ret < 0) {
+		return ret;
+	}
+	while (true) {
+		ret = sd_bus_message_enter_container(msg, 'e', "sv");
+		if (ret < 0) {
+			return ret;
+		} else if (ret == 0) {
+			break;
+		}
+
+		const char *key = NULL;
+		ret = sd_bus_message_read(msg, "s", &key);
+		if (ret < 0) {
+			return ret;
+		}
+
+		if (strcmp(key, "id") == 0) {
+			ret = sd_bus_message_read(msg, "v", "u", &id);
+		} else if (strcmp(key, "all") == 0) {
+			ret = sd_bus_message_read(msg, "v", "b", &all);
+		} else {
+			ret = sd_bus_message_skip(msg, "v");
+		}
+		if (ret < 0) {
+			return ret;
+		}
+
+		ret = sd_bus_message_exit_container(msg);
+		if (ret < 0) {
+			return ret;
+		}
+	}
+
+	ret = mako_history_delete(state, id, all);
+	if (ret < 0) {
+		return ret;
+	}
+	return sd_bus_reply_method_return(msg, "");
+}
+
+static int handle_read_history(sd_bus_message *msg, void *data,
+		sd_bus_error *ret_error) {
+	struct mako_state *state = data;
+	uint32_t id = 0;
+	int all = 0;
+
+	int ret = sd_bus_message_enter_container(msg, 'a', "{sv}");
+	if (ret < 0) {
+		return ret;
+	}
+	while (true) {
+		ret = sd_bus_message_enter_container(msg, 'e', "sv");
+		if (ret < 0) {
+			return ret;
+		} else if (ret == 0) {
+			break;
+		}
+
+		const char *key = NULL;
+		ret = sd_bus_message_read(msg, "s", &key);
+		if (ret < 0) {
+			return ret;
+		}
+
+		if (strcmp(key, "id") == 0) {
+			ret = sd_bus_message_read(msg, "v", "u", &id);
+		} else if (strcmp(key, "all") == 0) {
+			ret = sd_bus_message_read(msg, "v", "b", &all);
+		} else {
+			ret = sd_bus_message_skip(msg, "v");
+		}
+		if (ret < 0) {
+			return ret;
+		}
+
+		ret = sd_bus_message_exit_container(msg);
+		if (ret < 0) {
+			return ret;
+		}
+	}
+
+	ret = mako_history_mark_read(state, id, all);
+	if (ret < 0) {
+		return ret;
+	}
+	return sd_bus_reply_method_return(msg, "");
 }
 
 /**
@@ -500,7 +608,9 @@ static const sd_bus_vtable service_vtable[] = {
 	SD_BUS_METHOD("InvokeAction", "us", "", handle_invoke_action, SD_BUS_VTABLE_UNPRIVILEGED),
 	SD_BUS_METHOD("RestoreNotification", "", "", handle_restore_action, SD_BUS_VTABLE_UNPRIVILEGED),
 	SD_BUS_METHOD("ListNotifications", "", "aa{sv}", handle_list_notifications, SD_BUS_VTABLE_UNPRIVILEGED),
-	SD_BUS_METHOD("ListHistory", "", "aa{sv}", handle_list_history, SD_BUS_VTABLE_UNPRIVILEGED),
+	SD_BUS_METHOD("ListHistory", "s", "aa{sv}", handle_list_history, SD_BUS_VTABLE_UNPRIVILEGED),
+	SD_BUS_METHOD("DeleteHistoryNotifications", "a{sv}", "", handle_delete_history, SD_BUS_VTABLE_UNPRIVILEGED),
+	SD_BUS_METHOD("MarkHistoryNotificationsRead", "a{sv}", "", handle_read_history, SD_BUS_VTABLE_UNPRIVILEGED),
 	SD_BUS_METHOD("Reload", "", "", handle_reload, SD_BUS_VTABLE_UNPRIVILEGED),
 	SD_BUS_METHOD("SetMode", "s", "", handle_set_mode, SD_BUS_VTABLE_UNPRIVILEGED),
 	SD_BUS_METHOD("ListModes", "", "as", handle_list_modes, SD_BUS_VTABLE_UNPRIVILEGED),

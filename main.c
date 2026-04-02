@@ -4,6 +4,7 @@
 
 #include "config.h"
 #include "dbus.h"
+#include "history.h"
 #include "mako.h"
 #include "mode.h"
 #include "notification.h"
@@ -47,6 +48,7 @@ static const char usage[] =
 	"      --hidden-format <format>        Format string.\n"
 	"      --max-visible <n>               Max number of visible notifications.\n"
 	"      --max-history <n>               Max size of history buffer.\n"
+	"      --history-file <path>           Path to history file.\n"
 	"      --history <0|1>                 Add expired notifications to history.\n"
 	"      --sort <sort_criteria>          Sorts incoming notifications by time\n"
 	"                                      and/or priority in ascending(+) or\n"
@@ -73,8 +75,8 @@ static bool init(struct mako_state *state) {
 		return false;
 	}
 	wl_list_init(&state->notifications);
-	wl_list_init(&state->history);
 	wl_array_init(&state->current_modes);
+	mako_history_init_state(state);
 	const char *mode = "default";
 	set_modes(state, &mode, 1);
 	return true;
@@ -89,9 +91,6 @@ static void finish(struct mako_state *state) {
 
 	struct mako_notification *notif, *tmp;
 	wl_list_for_each_safe(notif, tmp, &state->notifications, link) {
-		destroy_notification(notif);
-	}
-	wl_list_for_each_safe(notif, tmp, &state->history, link) {
 		destroy_notification(notif);
 	}
 

@@ -108,6 +108,7 @@ struct mako_config {
 	uint32_t sort_criteria; //enum mako_sort_criteria
 	uint32_t sort_asc;
 	int32_t max_history;
+	char *history_path;
 
 	struct mako_style superstyle;
 };
@@ -129,5 +130,6 @@ int load_config_file(struct mako_config *config, char *config_arg);
 int reload_config(struct mako_config *config, int argc, char **argv);
 bool apply_global_option(struct mako_config *config, const char *name,
 	const char *value);
+char *expand_config_path(const char *path);
 
 #endif

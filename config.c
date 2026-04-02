@@ -8,6 +8,7 @@
 
 #include "config.h"
 #include "criteria.h"
+#include "history.h"
 #include "string-util.h"
 #include "types.h"
 
@@ -56,6 +57,7 @@ void init_default_config(struct mako_config *config) {
 	config->max_history = 5;
 	config->sort_criteria = MAKO_SORT_CRITERIA_TIME;
 	config->sort_asc = 0;
+	config->history_path = mako_default_history_path();
 }
 
 void finish_config(struct mako_config *config) {
@@ -65,6 +67,7 @@ void finish_config(struct mako_config *config) {
 	}
 
 	finish_style(&config->superstyle);
+	free(config->history_path);
 }
 
 void init_default_style(struct mako_style *style) {
@@ -502,7 +505,7 @@ bool apply_superset_style(
 	return true;
 }
 
-static char *expand_config_path(const char *path) {
+char *expand_config_path(const char *path) {
 	if (strncmp(path, "/", 1) == 0) {
 		return strdup(path);
 	}
@@ -542,6 +545,14 @@ static bool apply_config_option(struct mako_config *config, const char *name,
 		return true;
 	} else if (strcmp(name, "max-history") == 0) {
 		return parse_int(value, &config->max_history);
+	} else if (strcmp(name, "history-file") == 0) {
+		char *path = expand_config_path(value);
+		if (path == NULL) {
+			return false;
+		}
+		free(config->history_path);
+		config->history_path = path;
+		return true;
 	} else if (strcmp(name, "include") == 0) {
 		char *path = expand_config_path(value);
 		return path && load_config_file(config, path) == 0;
@@ -918,6 +929,7 @@ int parse_config_arguments(struct mako_config *config, int argc, char **argv) {
 		{"format", required_argument, 0, 0},
 		{"max-visible", required_argument, 0, 0},
 		{"max-history", required_argument, 0, 0},
+		{"history-file", required_argument, 0, 0},
 		{"history", required_argument, 0, 0},
 		{"default-timeout", required_argument, 0, 0},
 		{"ignore-timeout", required_argument, 0, 0},

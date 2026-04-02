@@ -4,11 +4,13 @@ local -a makoctl_cmds
 
 makoctl_cmds=(
 	'dismiss:Dismiss notification (first by default)'
-	'restore:Restore the most recently expired notification from the history buffer'
+	'restore:Restore the most recently dismissed notification from the history file'
 	'invoke:Invoke an action on the first notification. If action is not specified, invoke the default action'
 	'menu:Use a program to select one action to be invoked on the notification'
 	'list:Retrieve a list of current notifications'
 	'history:Retrieve a list of dismissed notifications'
+	'read:Mark notifications in the history file as read'
+	'delete:Delete notifications from the history file'
 	'reload:Reload the configuration file'
 	'mode:List, activate, or deactivate modes'
 	'help:Show help message and quit'
@@ -39,6 +41,19 @@ else
 				_arguments -s \
 						   '-n[Use a program to select one action on the notification with the given id]:id:' \
 						   '*:prog and args:_command_names -e'
+				;;
+			history)
+				_arguments -s \
+						   '-j[Use JSON output]' \
+						   '*:filter:(read unread)'
+				;;
+			read)
+				_arguments -s \
+						   '-n[Mark the history notification with the given id or all as read]:id or all:'
+				;;
+			delete)
+				_arguments -s \
+						   '-n[Delete the history notification with the given id or all]:id or all:'
 				;;
 			mode)
 				_arguments -s \

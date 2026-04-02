@@ -12,6 +12,8 @@ _makoctl()
     'menu'
     'list'
     'history'
+    'read'
+    'delete'
     'reload'
     'mode'
     'help'
@@ -35,6 +37,18 @@ _makoctl()
       ;;
     menu)
       COMPREPLY=($(compgen -c -W "-n" -- "$cur"))
+      return
+      ;;
+    history)
+      COMPREPLY=($(compgen -W "read unread -j" -- "$cur"))
+      return
+      ;;
+    read)
+      COMPREPLY=($(compgen -W "-n" -- "$cur"))
+      return
+      ;;
+    delete)
+      COMPREPLY=($(compgen -W "-n" -- "$cur"))
       return
       ;;
     mode)
